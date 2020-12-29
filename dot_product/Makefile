@@ -1,6 +1,11 @@
-CXX=g++ -Wall -g -std=c++0x -I../xbyak/
+CXX=g++ -Wall -std=c++0x -I../xbyak/
 
 
-main: main.cpp
-	$(CXX) -o prog main.cpp
+release: main.cpp
+	$(CXX) -O2 -o prog main.cpp
+releaseavx: main.cpp
+	$(CXX) -O2 -march=skylake-avx512 -o prog main.cpp
+
+debug: main.cpp
+	$(CXX) -g -o prog main.cpp
 
