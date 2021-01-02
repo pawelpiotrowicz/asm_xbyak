@@ -81,6 +81,62 @@ namespace my {
     }
 };
 
+template <>
+struct Code<double> : Xbyak::CodeGenerator
+{
+
+  const char *name() { return "pawel_ver_d"; }
+  // rdi , rsi , rdx, rcx
+  Code() /* my version */
+  {
+    vxorpd(xmm0, xmm0, xmm0);
+    test(rdx, rdx);
+    je("end", T_NEAR);
+    xor_(rax, rax);
+    cmp(rdx, 8);
+    jl("remainder");
+    vxorpd(zmm3, zmm3, zmm3);
+    vxorpd(zmm2, zmm2, zmm2);
+    mov(r8, rdx);
+    and_(r8, 8 - 1);
+    sub(rdx, r8);
+    L("full_chunk");
+    vmovupd(zmm0, ptr[rdi + rax * 8]);
+    vmovupd(zmm1, ptr[rsi + rax * 8]);
+    vmulpd(zmm2, zmm1, zmm0);
+    vaddpd(zmm3, zmm2, zmm3);
+    add(rax, 8);
+    cmp(rdx, rax);
+    jne("full_chunk");
+    vextractf64x4(ymm0, zmm3, 0x0);
+    vextractf64x4(ymm1, zmm3, 0x1);
+    vaddpd(ymm3, ymm1, ymm0);
+    vextractf128(xmm1, ymm3, 0x0);
+    vextractf128(xmm2, ymm3, 0x1);
+    vaddpd(xmm0, xmm1, xmm2);
+    movapd(xmm1, xmm0);
+    shufpd(xmm1, xmm1, 0x1);
+    vaddpd(xmm0, xmm1, xmm0);
+    cmp(r8, 0);
+    je("end");
+    L("set_remainder");
+    add(rdx, r8);
+    L("remainder");
+    vmovsd(xmm1, ptr[rdi + rax * 8]);
+    vfmadd231sd(xmm0, xmm1, ptr[rsi + rax * 8]);
+    inc(rax);
+    cmp(rdx, rax);
+    jne("remainder");
+    L("end");
+    ret();
+  }
+
+  template <class... P>
+  float run(P... args)
+  {
+    return ((double (*)(P...))(this)->getCode())(args...);
+  }
+};
 }
 
 namespace gcc {
@@ -118,6 +174,35 @@ namespace gcc {
     }
 };
 
+template <>
+struct Code<double> : Xbyak::CodeGenerator
+{
+  const char *name() { return "g++AVX512"; }
+  // rdi , rsi , rdx, rcx
+  Code() /* gcc version */
+  {
+    test(rdx, rdx);
+    je("is_zero");
+    xor_(rax, rax);
+    vxorpd(xmm0, xmm0, xmm0);
+    L("again");
+    vmovsd(xmm1, ptr[rdi + rax * 8]);
+    vfmadd231sd(xmm0, xmm1, ptr[rsi + rax * 8]);
+    inc(rax);
+    cmp(rdx, rax);
+    jne("again");
+    ret();
+    L("is_zero");
+    vxorpd(xmm0, xmm0, xmm0);
+    ret();
+  }
+
+  template <class... P>
+  float run(P... args)
+  {
+    return ((double (*)(P...))(this)->getCode())(args...);
+  }
+};
 }
 
 #define log_err(x) { std::cout <<"[ERROR] " << x << std::endl; exit(1); }
@@ -151,11 +236,17 @@ struct getTypeName<double>
   static const char *name() { return "<double>"; }
 };
 
+
+
 template<class T>
 bool AreSame(T a, T b)
 {
-  return std::fabs(a - b) < std::numeric_limits<T>::epsilon();
+  // std::cout << "FABS" << std::fabs(a - b) << std::endl;
+   return (std::is_same<T, float>::value) ? (std::fabs(a - b) < std::numeric_limits<T>::epsilon()) : std::fabs(a - b) < 0.0001 ;
 }
+
+
+
 template<class V>
 std::string winners(V& vec)
 {
@@ -193,7 +284,7 @@ T dot_prod(const std::vector<T> v1, const std::vector<T> v2, G1 &g1, G2 &g2)
 
   if (!AreSame<T>(ret, test_value))
   {
-    log_err("Incorrect values " << getTypeName<T>::name() << "  " << ret << " != " << test_value << "  vector_size=" << v1.size() <<  " name="<< g1.name());
+    log_err("Incorrect values " << getTypeName<T>::name() << "  " << ret << " != " << test_value << "  vector_size=" << v1.size() << " name=" << g1.name() << " epsilon=" << std::numeric_limits<T>::epsilon());
   }
 
   beg = std::chrono::high_resolution_clock::now();
@@ -210,7 +301,7 @@ T dot_prod(const std::vector<T> v1, const std::vector<T> v2, G1 &g1, G2 &g2)
 
   if (!AreSame<T>(ret, test_value))
   {
-    log_err("Incorrect values " << getTypeName<T>::name() << "  " << ret << " != " << test_value << "  vector_size=" << v1.size() << " name=" << g1.name());
+    log_err("Incorrect values " << getTypeName<T>::name() << "  " << ret << " != " << test_value << "  vector_size=" << v1.size() << " name=" << g2.name());
   }
 
    auto pair_best = result[0];
@@ -234,14 +325,17 @@ using vec_pair = std::vector<my_pair<T>>;
 
 int main(int argc, char **argv) {
 
-  vec_pair<float> vec_pair_float;
-  vec_pair_float.emplace_back(my_pair<float>());
-  vec_pair_float.emplace_back(my_pair<float>({4.4}, {4.5}));
-  vec_pair_float.emplace_back(my_pair<float>({3.0, 1.3, 3.0}, {4.0, 1.3, 3.0}));
-  vec_pair_float.emplace_back(my_pair<float>({3.0, 1.3, 3.0,6.0}, {4.0, 1.3, 3.0,5.0}));
-  vec_pair_float.emplace_back(my_pair<float>({3.0, 1.3, 3.0,2.1,2.3}, {4.0, 1.3, 3.0,3.4,3.2}));
-  vec_pair_float.emplace_back(my_pair<float>({1.0,1.3,3.0,1.0,1.3,3.0,1.0,1.0,1.0,1.3,3.0,1.0,1.3,3.0,1.0,1.0,},{1.0,1.3,3.0,1.0,1.3,3.0,1.0,1.0,1.0,1.3,3.0,1.0,1.3,3.0,1.0,1.0,}));
-  vec_pair_float.emplace_back(my_pair<float>({1.0,
+  typedef double T;
+
+  vec_pair<T> vec_pair_float;
+  vec_pair_float.emplace_back(my_pair<T>());
+  vec_pair_float.emplace_back(my_pair<T>({4.4}, {4.51}));
+  vec_pair_float.emplace_back(my_pair<T>({3.0, 1.3, 3.0}, {4.0, 1.3, 3.0}));
+  vec_pair_float.emplace_back(my_pair<T>({3.0, 1.3, 3.0,6.0}, {4.0, 1.3, 3.0,5.0}));
+  vec_pair_float.emplace_back(my_pair<T>({3.0, 1.3, 3.0,2.1,2.3}, {4.0, 1.3, 3.0,3.4,3.2}));
+  vec_pair_float.emplace_back(my_pair<T>({3.0, 1.3, 3.0, 2.1, 3.0, 1.3, 3.0, 2.1}, {3.0, 1.3, 3.0, 2.1, 1.3, 3.0, 3.4, 3.2}));
+  vec_pair_float.emplace_back(my_pair<T>({1.0,1.3,3.0,1.0,1.3,3.0,1.0,1.0,1.0,1.3,3.0,1.0,1.3,3.0,1.0,1.0,},{1.0,1.3,3.0,1.0,1.3,3.0,1.0,1.0,1.0,1.3,3.0,1.0,1.3,3.0,1.0,1.0,}));
+  vec_pair_float.emplace_back(my_pair<T>({1.0,
                                               1.0,
                                               1.3,
                                               3.0,
@@ -312,32 +406,34 @@ int main(int argc, char **argv) {
   for(int i=64;i<1024;i+=64)
   {
     {
-    my_pair<float> pair;
+    my_pair<T> pair;
     pair.first.resize(i);
     pair.second.resize(i);
-    GenerateRandomData((float*)pair.first.data(), i);
-    GenerateRandomData((float *)pair.second.data(), i);
+    GenerateRandomData((T*)pair.first.data(), i);
+    GenerateRandomData((T *)pair.second.data(), i);
     vec_pair_float.emplace_back(pair);
     }
 
     {
-      my_pair<float> pair;
+      my_pair<T> pair;
       pair.first.resize(i+2);
       pair.second.resize(i+2);
-      GenerateRandomData((float *)pair.first.data(), i+2);
-      GenerateRandomData((float *)pair.second.data(), i+2);
+      GenerateRandomData((T *)pair.first.data(), i+2);
+      GenerateRandomData((T *)pair.second.data(), i+2);
       vec_pair_float.emplace_back(pair);
     }
   }
 
 
 
-  my::Code<float> my_c; /* my version */
 
-  gcc::Code<float> gcc_c;  /* gcc version */
+
+  my::Code<T> my_c; /* my version */
+
+  gcc::Code<T> gcc_c;  /* gcc version */
 
   for (auto v : vec_pair_float)
-    dot_prod<float>(v.first, v.second, my_c, gcc_c);
+    dot_prod<T>(v.first, v.second, my_c, gcc_c);
 
 
   return 0;
