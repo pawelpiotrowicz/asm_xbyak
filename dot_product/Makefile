@@ -1,4 +1,4 @@
-CXX=g++ -Wall -std=c++0x -I../xbyak/
+CXX=g++ -Wall -std=c++0x -I../xbyak/ -I../include
 
 
 release: main.cpp
