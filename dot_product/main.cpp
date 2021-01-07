@@ -360,7 +360,7 @@ void run_case() {
 int main(int argc, char **argv) {
 
  run_case<float>();
-  run_case<double>();
+ run_case<double>();
 
 
 
