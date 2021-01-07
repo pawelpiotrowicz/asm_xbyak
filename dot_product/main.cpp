@@ -124,9 +124,8 @@ template<class T>
 bool AreSame(T a, T b)
 {
   // std::cout << "FABS=" << std::fabs(a - b) << std::endl;
-  // return (std::is_same<T, float>::value) ? (std::fabs(a - b) < std::numeric_limits<T>::epsilon()) : std::fabs(a - b) < 0.0001 ;
-
-    return  std::fabs(a - b) < std::numeric_limits<T>::epsilon();
+   return (std::is_same<T, float>::value) ? (std::fabs(a - b) < std::numeric_limits<T>::epsilon()) : std::fabs(a - b) < 0.0000000000001 ;
+  //  return  std::fabs(a - b) < std::numeric_limits<T>::epsilon();
 
 }
 
@@ -161,30 +160,27 @@ T dot_prod(const std::vector<T> v1, const std::vector<T> v2, G1 &our_AVX, G2 &gc
   auto end = std::chrono::high_resolution_clock::now();
   auto diff_duration_org = std::chrono::duration_cast<std::chrono::nanoseconds>(end - beg);
 
-  T ret = 0;
+  T ret_gcc_AVX = 0;
   beg = std::chrono::high_resolution_clock::now();
-  ret = our_AVX.run(v1.data(), v2.data(), v1.size());
+  ret_gcc_AVX = gcc_AVX.run(v1.data(), v2.data(), v1.size());
+  end = std::chrono::high_resolution_clock::now();
+  auto diff_duration_gcc_AVX = std::chrono::duration_cast<std::chrono::nanoseconds>(end - beg);
+
+  if (!AreSame<T>(ret_gcc_AVX, test_value))
+  {
+    log_err("Incorrect values gcc_AVX vs GCC_without_avx -" << getTypeName<T>::name() << "  " << ret_gcc_AVX << " != " << test_value << "  vector_size=" << v1.size() << " name=" << gcc_AVX.name());
+  }
+
+  T ret_our_AVX = 0;
+  beg = std::chrono::high_resolution_clock::now();
+  ret_our_AVX = our_AVX.run(v1.data(), v2.data(), v1.size());
   end = std::chrono::high_resolution_clock::now();
   auto diff_duration_our_AVX = std::chrono::duration_cast<std::chrono::nanoseconds>(end - beg);
 
-  auto ret_2 = gcc_AVX.run(v1.data(), v2.data(), v1.size());
-
-  if (!AreSame<T>(test_value, ret))
+  if (!AreSame<T>(ret_our_AVX, test_value))
   {
-     log_err("ret_2 :" << ret_2 << " " << ret << "   " << our_AVX.name());
+    log_err("Incorrect values Our vs GCC_without_avx- " << getTypeName<T>::name() << "  " << std::setprecision(16)<< ret_our_AVX << " != " << test_value << "  vector_size=" << v1.size() << " name=" << our_AVX.name() << " epsilon=" << std::numeric_limits<T>::epsilon() << " abs=" << std::fabs(ret_our_AVX - test_value));
   }
-
-  if (!AreSame<T>(ret, test_value))
-  {
-
-      log_err("Incorrect values 1- " << getTypeName<T>::name() << "  " << ret << " != " << test_value << "  vector_size=" << v1.size() << " name=" << our_AVX.name() << " epsilon=" << std::numeric_limits<T>::epsilon());
-  }
-
-  ret = 0;
-  beg = std::chrono::high_resolution_clock::now();
-  ret = gcc_AVX.run(v1.data(), v2.data(), v1.size());
-  end = std::chrono::high_resolution_clock::now();
-  auto diff_duration_gcc_AVX = std::chrono::duration_cast<std::chrono::nanoseconds>(end - beg);
 
   std::vector<std::pair<int64_t, std::string>> result{
       {diff_duration_org.count(), "dgl-g++-O2"},
@@ -193,10 +189,6 @@ T dot_prod(const std::vector<T> v1, const std::vector<T> v2, G1 &our_AVX, G2 &gc
 
   std::sort(result.begin(), result.end(), [](std::pair<int64_t, std::string> &p1, std::pair<int64_t, std::string>& p2) { return p1.first<p2.first; });
 
-  if (!AreSame<T>(ret, test_value))
-  {
-    log_err("Incorrect values 2 -" << getTypeName<T>::name() << "  " << ret << " != " << test_value << "  vector_size=" << v1.size() << " name=" << gcc_AVX.name());
-  }
 
    auto pair_best = result[0];
    auto pair_middle = result[1];
@@ -208,7 +200,7 @@ T dot_prod(const std::vector<T> v1, const std::vector<T> v2, G1 &our_AVX, G2 &gc
    log_info("OK " << getTypeName<T>::name() << " size=" << pad(4) << v1.size() << winners(result) << " " << pad(6) << proc_middle << "%" << pad(6) << proc_worst << "%   "
                   << "times={" << pad(5) << pair_best.first << "," << pad(5) << pair_middle.first << "," << pad(5) << pair_worst.first<< " }" );
 
-   return ret;
+   return ret_our_AVX;
 }
 
 template <class T>
@@ -367,7 +359,7 @@ void run_case() {
 
 int main(int argc, char **argv) {
 
-// run_case<float>();
+ run_case<float>();
   run_case<double>();
 
 
