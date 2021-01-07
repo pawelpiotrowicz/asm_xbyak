@@ -5,14 +5,14 @@
 namespace cpugraph {
 
     template <class T>
-    struct reduce; /* Dot product implementation */
+    struct dot_reduce; /* Dot product implementation */
 
     template <>
-    struct reduce<float> : Xbyak::CodeGenerator
+    struct dot_reduce<float> : Xbyak::CodeGenerator
     {
         typedef float self_type;
         const char *name() { return "paw_reduce_float"; }
-        reduce()
+        dot_reduce()
         {
         }
         void run(self_type *out, const self_type *l, const self_type *r, size_t size_out, size_t reduce_size)
@@ -22,11 +22,11 @@ namespace cpugraph {
     };
 
     template <>
-    struct reduce<double> : Xbyak::CodeGenerator
+    struct dot_reduce<double> : Xbyak::CodeGenerator
     {
         typedef double self_type;
         const char *name() { return "paw_reduce_double"; }
-        reduce()
+        dot_reduce()
         {
 
         }
