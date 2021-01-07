@@ -1,24 +1,5 @@
-#include <iostream>
-#include "dot_product.hpp"
-#include "xbyak/xbyak.h"
-#include "xbyak/xbyak_util.h"
-#include <vector>
-#include <chrono>
-#include <limits>
-#include <cmath>
-#include <iomanip>
-#include <sstream>
-#include <random>
-template <class T>
-void GenerateRandomData(T *data, int dim)
-{
-  std::mt19937 rng(std::random_device{}());
-  std::uniform_int_distribution<> dist(0, 10000);
-  for (int i = 0; i < dim; i++)
-  {
-    data[i] = (dist(rng) / 100);
-  }
-}
+
+#include "dot_reduce.hpp"
 
 
 namespace gcc {
@@ -87,8 +68,7 @@ struct Code<double> : Xbyak::CodeGenerator
 };
 }
 
-#define log_err(x) { std::cout <<"[ERROR] " << x << std::endl; exit(1); }
-#define log_info(x) std::cout << "[INFO] " << x << std::endl;
+
 
 template<class T>
 T test_dot_prod_gcc_without_avx(const std::vector<T>& v1, const std::vector<T>& v2) {
@@ -102,32 +82,9 @@ T test_dot_prod_gcc_without_avx(const std::vector<T>& v1, const std::vector<T>& 
 }
 
 
-template<class T>
-struct getTypeName {
-   static const char* name() { return "<unknown>"; }
-};
-
-template<>
-struct getTypeName<float> {
-  static const char *name() { return "<float>"; }
-};
-
-template <>
-struct getTypeName<double>
-{
-  static const char *name() { return "<double>"; }
-};
 
 
 
-template<class T>
-bool AreSame(T a, T b)
-{
-  // std::cout << "FABS=" << std::fabs(a - b) << std::endl;
-   return (std::is_same<T, float>::value) ? (std::fabs(a - b) < std::numeric_limits<T>::epsilon()) : std::fabs(a - b) < 0.0000000000001 ;
-  //  return  std::fabs(a - b) < std::numeric_limits<T>::epsilon();
-
-}
 
 
 

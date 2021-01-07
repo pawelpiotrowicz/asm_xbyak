@@ -1,6 +1,8 @@
 #pragma once
+#include "common_tools.hpp"
 #include "xbyak/xbyak.h"
 #include "xbyak/xbyak_util.h"
+
 
 
 namespace cpugraph {

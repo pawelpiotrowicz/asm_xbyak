@@ -1,25 +1,4 @@
-#include <iostream>
 #include "dot_product.hpp"
-#include "xbyak/xbyak.h"
-#include "xbyak/xbyak_util.h"
-#include <vector>
-#include <chrono>
-#include <limits>
-#include <cmath>
-#include <iomanip>
-#include <sstream>
-#include <random>
-template <class T>
-void GenerateRandomData(T *data, int dim)
-{
-  std::mt19937 rng(std::random_device{}());
-  std::uniform_int_distribution<> dist(0, 10000);
-  for (int i = 0; i < dim; i++)
-  {
-    data[i] = (dist(rng) / 100);
-  }
-}
-
 
 namespace gcc {
 
@@ -87,9 +66,6 @@ struct Code<double> : Xbyak::CodeGenerator
 };
 }
 
-#define log_err(x) { std::cout <<"[ERROR] " << x << std::endl; exit(1); }
-#define log_info(x) std::cout << "[INFO] " << x << std::endl;
-
 template<class T>
 T test_dot_prod_gcc_without_avx(const std::vector<T>& v1, const std::vector<T>& v2) {
 
@@ -102,47 +78,8 @@ T test_dot_prod_gcc_without_avx(const std::vector<T>& v1, const std::vector<T>& 
 }
 
 
-template<class T>
-struct getTypeName {
-   static const char* name() { return "<unknown>"; }
-};
-
-template<>
-struct getTypeName<float> {
-  static const char *name() { return "<float>"; }
-};
-
-template <>
-struct getTypeName<double>
-{
-  static const char *name() { return "<double>"; }
-};
 
 
-
-template<class T>
-bool AreSame(T a, T b)
-{
-  // std::cout << "FABS=" << std::fabs(a - b) << std::endl;
-   return (std::is_same<T, float>::value) ? (std::fabs(a - b) < std::numeric_limits<T>::epsilon()) : std::fabs(a - b) < 0.0000000000001 ;
-  //  return  std::fabs(a - b) < std::numeric_limits<T>::epsilon();
-
-}
-
-
-
-template<class V>
-std::string winners(V& vec)
-{
-    std::stringstream ss;
-    ss << " {";
-    for(auto &v : vec)
-    {
-        ss << std::setw(11) << std::setfill(' ') << v.second <<",";
-    }
-    ss << "}";
-    return ss.str();
-}
 
 template <class T, class G1, class G2>
 T dot_prod(const std::vector<T> v1, const std::vector<T> v2, G1 &our_AVX, G2 &gcc_AVX)
@@ -166,9 +103,9 @@ T dot_prod(const std::vector<T> v1, const std::vector<T> v2, G1 &our_AVX, G2 &gc
   end = std::chrono::high_resolution_clock::now();
   auto diff_duration_gcc_AVX = std::chrono::duration_cast<std::chrono::nanoseconds>(end - beg);
 
-  if (!AreSame<T>(ret_gcc_AVX, test_value))
+  if (!cpugraph::AreSame<T>(ret_gcc_AVX, test_value))
   {
-    log_err("Incorrect values gcc_AVX vs GCC_without_avx -" << getTypeName<T>::name() << "  " << ret_gcc_AVX << " != " << test_value << "  vector_size=" << v1.size() << " name=" << gcc_AVX.name());
+    log_err("Incorrect values gcc_AVX vs GCC_without_avx -" << cpugraph::getTypeName<T>::name() << "  " << ret_gcc_AVX << " != " << test_value << "  vector_size=" << v1.size() << " name=" << gcc_AVX.name());
   }
 
   T ret_our_AVX = 0;
@@ -177,9 +114,9 @@ T dot_prod(const std::vector<T> v1, const std::vector<T> v2, G1 &our_AVX, G2 &gc
   end = std::chrono::high_resolution_clock::now();
   auto diff_duration_our_AVX = std::chrono::duration_cast<std::chrono::nanoseconds>(end - beg);
 
-  if (!AreSame<T>(ret_our_AVX, test_value))
+  if (!cpugraph::AreSame<T>(ret_our_AVX, test_value))
   {
-    log_err("Incorrect values Our vs GCC_without_avx- " << getTypeName<T>::name() << "  " << std::setprecision(16)<< ret_our_AVX << " != " << test_value << "  vector_size=" << v1.size() << " name=" << our_AVX.name() << " epsilon=" << std::numeric_limits<T>::epsilon() << " abs=" << std::fabs(ret_our_AVX - test_value));
+    log_err("Incorrect values Our vs GCC_without_avx- " << cpugraph::getTypeName<T>::name() << "  " << std::setprecision(16)<< ret_our_AVX << " != " << test_value << "  vector_size=" << v1.size() << " name=" << our_AVX.name() << " epsilon=" << std::numeric_limits<T>::epsilon() << " abs=" << std::fabs(ret_our_AVX - test_value));
   }
 
   std::vector<std::pair<int64_t, std::string>> result{
@@ -197,8 +134,8 @@ T dot_prod(const std::vector<T> v1, const std::vector<T> v2, G1 &our_AVX, G2 &gc
    int proc_middle = (int)((((double)pair_middle.first / (double)pair_best.first) - 1) * 100);
    int proc_worst = (int)((((double)pair_worst.first / (double)pair_best.first) - 1 ) * 100);
    #define pad(x) std::setw(x) << std::setfill(' ')
-   log_info("OK " << getTypeName<T>::name() << " size=" << pad(4) << v1.size() << winners(result) << " " << pad(6) << proc_middle << "%" << pad(6) << proc_worst << "%   "
-                  << "times={" << pad(5) << pair_best.first << "," << pad(5) << pair_middle.first << "," << pad(5) << pair_worst.first<< " }" );
+   log_info("OK " << cpugraph::getTypeName<T>::name() << " size=" << pad(4) << v1.size() << cpugraph::join(result, [](std::pair<int64_t, std::string> &in) { return in.second; }) << " " << pad(6) << proc_middle << "%" << pad(6) << proc_worst << "%   "
+                  << "times={" << pad(5) << pair_best.first << "," << pad(5) << pair_middle.first << "," << pad(5) << pair_worst.first << " }");
 
    return ret_our_AVX;
 }
@@ -331,8 +268,8 @@ void run_case() {
       my_pair<T> pair;
       pair.first.resize(i);
       pair.second.resize(i);
-      GenerateRandomData((T *)pair.first.data(), i);
-      GenerateRandomData((T *)pair.second.data(), i);
+      cpugraph::GenerateRandomData((T *)pair.first.data(), i);
+      cpugraph::GenerateRandomData((T *)pair.second.data(), i);
       vec_pair_tab.emplace_back(pair);
     }
 
@@ -340,8 +277,8 @@ void run_case() {
       my_pair<T> pair;
       pair.first.resize(i + 2);
       pair.second.resize(i + 2);
-      GenerateRandomData((T *)pair.first.data(), i + 2);
-      GenerateRandomData((T *)pair.second.data(), i + 2);
+      cpugraph::GenerateRandomData((T *)pair.first.data(), i + 2);
+      cpugraph::GenerateRandomData((T *)pair.second.data(), i + 2);
       vec_pair_tab.emplace_back(pair);
     }
   }
