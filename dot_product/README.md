@@ -1,3 +1,4 @@
+```
 [INFO] OK <float> size=   0 {  pawel_ver,  g++AVX512, dgl-g++-O2,}     24%    35%   times={  365,  453,  493 }
 [INFO] OK <float> size=   1 { dgl-g++-O2,  pawel_ver,  g++AVX512,}     21%    30%   times={  237,  289,  309 }
 [INFO] OK <float> size=   3 {  pawel_ver,  g++AVX512, dgl-g++-O2,}      1%    20%   times={  232,  236,  280 }
@@ -35,3 +36,4 @@
 [INFO] OK <float> size= 898 {  pawel_ver,  g++AVX512, dgl-g++-O2,}    773%  4480%   times={  433, 3781,19835 }
 [INFO] OK <float> size= 960 {  pawel_ver,  g++AVX512, dgl-g++-O2,}    757%  4483%   times={  464, 3980,21267 }
 [INFO] OK <float> size= 962 {  pawel_ver,  g++AVX512, dgl-g++-O2,}    813%  4714%   times={  441, 4027,21230 }
+```
