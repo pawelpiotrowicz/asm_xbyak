@@ -70,8 +70,9 @@ void run_case()
   cpugraph::dot_reduce<T> my;
 
   std::vector<Content<T>> v;
-  v.push_back(Content<T>({1.0, 2.0, 3.0}, {1.0, 2.0, 3.0}, 1));
+  v.push_back(Content<T>({0.5, 2.1, 3.1}, {0.5, 2.2, 3.2}, 1));
   v.push_back(Content<T>({1.0, 2.0, 3.0}, {1.0, 2.0, 3.0}, 3));
+  v.push_back(Content<T>({1.0, 2.0, 3.0, 1.0, 2.0, 3.0}, {1.0, 2.0, 3.0, 1.0, 2.0, 3.0}, 3));
 
   for (auto &item : v)
   {
@@ -91,6 +92,7 @@ void run_case()
 
     for(size_t i=0;i<CopyGccOutput.size();i++)
     {
+      log_info("CopyGccOutput{"<<CopyGccOutput[i] <<"} item.Out{"<<item.Out[i] <<"}");
       if (!cpugraph::AreSame<T>(CopyGccOutput[i], item.Out[i]))
       {
         log_err("type=" << cpugraph::getTypeName<T>::name()  << " Not equal vec_size=" << CopyGccOutput.size() << " reduction=" << item.reduce_size << "  CopyGccOutput[" << i << "] != My[" << i << "] => {" << CopyGccOutput[i] << " != " << item.Out[i] << "}");
