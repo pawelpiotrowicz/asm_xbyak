@@ -124,7 +124,7 @@ void run_case()
      // log_info("CopyGccOutput{"<<CopyGccOutput[i] <<"} item.Out{"<<item.Out[i] <<"}");
       if (!cpugraph::AreSame<T>(CopyGccOutput[i], item.Out[i]))
       {
-     //   log_err("type=" << cpugraph::getTypeName<T>::name()  << " Not equal vec_size=" << CopyGccOutput.size() << " reduction=" << item.reduce_size << "  CopyGccOutput[" << i << "] != My[" << i << "] => {" << CopyGccOutput[i] << " != " << item.Out[i] << "}");
+        log_err("type=" << cpugraph::getTypeName<T>::name()  << " Not equal vec_size=" << CopyGccOutput.size() << " reduction=" << item.reduce_size << "  CopyGccOutput[" << i << "] != My[" << i << "] => {" << CopyGccOutput[i] << " != " << item.Out[i] << "}");
       }
     }
 
@@ -150,7 +150,7 @@ void run_case()
 int main(int argc, char **argv) {
 
 
-   //run_case<float>();
+  run_case<float>();
   run_case<double>();
 
 
