@@ -94,7 +94,7 @@ void run_case()
 
   for(size_t dim=10;dim<512;dim+=32)
   {
-    for(size_t reduce=2;reduce<64;reduce+=2)
+    for(size_t reduce=2;reduce<130;reduce+=2)
     {
         Content<T> c(dim,reduce);
         v.push_back(c);
