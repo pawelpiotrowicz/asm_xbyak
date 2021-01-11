@@ -16,18 +16,39 @@ namespace cpugraph {
         dot_reduce()
         {
            // out=RDI, L=RSI, R=RDX, size_out=RCX, size_reduce=R8
-            push(r10);
-            xor_(r10, r10);
-            L("for_i");
-            dot_product_float(rsi, rdx, r8); // L, R, reduce_size
-            vmovss(ptr[rdi + r10 * 4], xmm0);
-            inc(r10);
-            add(rsi,4);
-            add(rdx,4);
-            cmp(r10, rcx);
-            jne("for_i");
-            pop(r10);
-            ret();
+            // push(r10);
+            // xor_(r10, r10);
+            // L("for_i");
+            // dot_product_float(rsi, rdx, r8); // L, R, reduce_size
+            // vmovss(ptr[rdi + r10 * 4], xmm0);
+            // inc(r10);
+            // add(rsi,4);
+            // add(rdx,4);
+            // cmp(r10, rcx);
+            // jne("for_i");
+            // pop(r10);
+            // ret();
+
+           push(r10);
+           push(r14);
+           push(r15);
+           xor_(r10, r10);
+           xor_(r11, r11);
+           mov(r14, rsi);
+           mov(r15, rdx);
+           L("for_i");
+           dot_product_float(rsi, rdx, r8); // L, R, reduce_size
+           vmovss(ptr[rdi + r10 * 4], xmm0);
+           add(r11, r8);
+           inc(r10);
+           lea(rsi, ptr[r14 + r11 * 4]);
+           lea(rdx, ptr[r15 + r11 * 4]);
+           cmp(r10, rcx);
+           jne("for_i");
+           pop(r15);
+           pop(r14);
+           pop(r10);
+           ret();
         }
 
         void dot_product_float(const Xbyak::Reg64 &reg_L, const Xbyak::Reg64 &reg_R, const Xbyak::Reg64 &reg_size)
@@ -89,16 +110,37 @@ namespace cpugraph {
         dot_reduce()
         {
             // out=RDI, L=RSI, R=RDX, size_out=RCX, size_reduce=R8
+            // push(r10);
+            // xor_(r10, r10);
+            // L("for_i");
+            // dot_product_double(rsi, rdx, r8); // L, R, reduce_size
+            // vmovsd(ptr[rdi + r10 * 8], xmm0);
+            // inc(r10);
+            // add(rsi, 8);
+            // add(rdx, 8);
+            // cmp(r10, rcx);
+            // jne("for_i");
+            // pop(r10);
+            // ret();
+
             push(r10);
+            push(r14);
+            push(r15);
             xor_(r10, r10);
+            xor_(r11, r11);
+            mov(r14, rsi);
+            mov(r15, rdx);
             L("for_i");
             dot_product_double(rsi, rdx, r8); // L, R, reduce_size
             vmovsd(ptr[rdi + r10 * 8], xmm0);
+            add(r11, r8);
             inc(r10);
-            add(rsi, 8);
-            add(rdx, 8);
+            lea(rsi, ptr[r14 + r11 * 8]);
+            lea(rdx, ptr[r15 + r11 * 8]);
             cmp(r10, rcx);
             jne("for_i");
+            pop(r15);
+            pop(r14);
             pop(r10);
             ret();
         }

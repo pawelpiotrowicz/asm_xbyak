@@ -41,7 +41,7 @@ struct Content {
     std::fill(Left.begin(), Left.end(), 0);
     std::fill(Right.begin(), Right.end(), 0);
   }
-  Content(const std::vector<T>& _L, const std::vector<T>& _R, size_t _reduce_size=3)  {
+  Content(const std::vector<T>& _L, const std::vector<T>& _R, size_t _reduce_size)  {
 
            if( (_L.size() != _R.size()) || !_L.size() || !_R.size() )
            {
@@ -82,6 +82,17 @@ size_t min_div(size_t in) {
   return 1;
 }
 
+template <class T>
+void print_tab(T &t, const char *name)
+{
+  std::cout << "name=" << name << "{";
+  for (auto &v : t)
+  {
+    std::cout << v << ",";
+  }
+  std::cout << "}" << std::endl;
+}
+
 template<class T>
 void run_case()
 {
@@ -89,17 +100,21 @@ void run_case()
 
   std::vector<Content<T>> v;
   v.push_back(Content<T>({0.5, 2.1, 3.1}, {0.5, 2.2, 3.2}, 1));
-  v.push_back(Content<T>({1.0, 2.0, 3.0}, {1.0, 2.0, 3.0}, 3));
-  v.push_back(Content<T>({1.0, 2.0, 3.0, 1.0, 2.0, 3.0}, {1.0, 2.0, 3.0, 1.0, 2.0, 3.0}, 3));
+
+v.push_back(Content<T>({1.0, 2.0, 3.0}, {1.0, 2.0, 3.0}, 3));
+ v.push_back(Content<T>({1.0, 2.0, 3.0, 1.0, 2.0, 3.0}, {1.0, 2.0, 3.0, 1.0, 2.0, 3.0}, 3));
+  v.push_back(Content<T>({1.0, 2.0, 3.0, 1.0, 2.0, 3.0}, {1.0, 2.0, 3.0, 1.0, 2.0, 3.0}, 2));
+  v.push_back(Content<T>({1.0, 7.0, 3.0, 1.0, 2.0, 3.0}, {1.0, 2.0, 3.0, 1.0, 2.0, 3.0}, 3));
 
   for(size_t dim=10;dim<512;dim+=32)
   {
     for(size_t reduce=2;reduce<130;reduce+=2)
     {
         Content<T> c(dim,reduce);
-        v.push_back(c);
         cpugraph::GenerateRandomData((T *)c.Left.data(),dim*reduce);
         cpugraph::GenerateRandomData((T *)c.Right.data(),dim*reduce);
+        v.push_back(c);
+  //      print_tab(c.Left, "RandomLhs=");
     }
   }
 
@@ -110,21 +125,23 @@ void run_case()
     test_reduce_gcc_without_avx((T *)item.Out.data(), (T *)item.Left.data(), (T *)item.Right.data(), item.Out.size(), item.reduce_size);
     auto end = std::chrono::high_resolution_clock::now();
     auto diff_duration_reduce_gcc = std::chrono::duration_cast<std::chrono::nanoseconds>(end - beg);
-
+   // print_tab( item.Left, "Lhs=");
+   // print_tab(item.Right, "Rhs=");
     auto CopyGccOutput = item.Out;
     std::fill(item.Out.begin(),item.Out.end(),0);
-
+    // print_tab(CopyGccOutput, "Exp=");
     beg = std::chrono::high_resolution_clock::now();
     my.run((T *)item.Out.data(), (T *)item.Left.data(), (T *)item.Right.data(), item.Out.size(), item.reduce_size);
     end = std::chrono::high_resolution_clock::now();
     auto diff_duration_my = std::chrono::duration_cast<std::chrono::nanoseconds>(end - beg);
+    // print_tab(item.Out, "My=");
 
     for(size_t i=0;i<CopyGccOutput.size();i++)
     {
      // log_info("CopyGccOutput{"<<CopyGccOutput[i] <<"} item.Out{"<<item.Out[i] <<"}");
       if (!cpugraph::AreSame<T>(CopyGccOutput[i], item.Out[i]))
       {
-        log_err("type=" << cpugraph::getTypeName<T>::name()  << " Not equal vec_size=" << CopyGccOutput.size() << " reduction=" << item.reduce_size << "  CopyGccOutput[" << i << "] != My[" << i << "] => {" << CopyGccOutput[i] << " != " << item.Out[i] << "}");
+        log_err("type=" << cpugraph::getTypeName<T>::name()  << " Not equal {dim}vec_size=" << CopyGccOutput.size() << " reduction=" << item.reduce_size << "  CopyGccOutput[" << i << "] != My[" << i << "] => {" << CopyGccOutput[i] << " != " << item.Out[i] << "}");
       }
     }
 
